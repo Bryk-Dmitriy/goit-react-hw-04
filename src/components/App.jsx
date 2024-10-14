@@ -1,65 +1,78 @@
-import './App.css'
-import { Product } from './Product';
-import { Mailbox } from './Product';
-import { BookList } from './Product';
-import { favouriteBooks } from './Collections';
-import { Card } from './Product';
-import { Alert } from "./Alert";
-import { AlertVanilla } from './Alert';
-import { UserMenu } from './Alert';
-import { Listener } from './Listener';
-import { Reactivity } from './Reactivity';
-import { ComponentLifecycle } from './ComponentLifecycle';
-import  LoginForm  from './Form';
-import HttpUsing from './httpUsing';
+import { useEffect, useState } from "react";
+import { Toaster, toast } from 'react-hot-toast';
+import axios from 'axios';
+import SearchBar from './SearchBar';
+import ImageGallery from './ImageGallery';
+import LoadMoreBtn from './LoadMoreBtn';
+import Loader from './Loader';
+import ImageModal from './ImageModal';
+import ErrorMessage from './ErrorMessage';
+
+
+const API_KEY = "n5KXrJKSVZFd1dagsQwGz2lwRu00Yo3bJySc7Li9Bo0";
 
 export default function App() {
-  return (
-    <div>
-      <h1>Best selling</h1>
 
-     <Product
-        name="Tacos With Lime"
-        imgUrl="https://images.pexels.com/photos/461198/pexels-photo-461198.jpeg?dpr=2&h=480&w=640"
-        price={10.99}
-      />
-      <Product
-        name="Fries and Burger"
-        imgUrl="https://images.pexels.com/photos/70497/pexels-photo-70497.jpeg?dpr=2&h=480&w=640"
-        price={14.29}
-      />
-      <Mailbox
-        name="Mango"
-        unreadMessages={2}
-      />
-      <h1>Books of the week</h1>
-      <BookList books={favouriteBooks} />
-      <Card cardText="Lorem">
-	      <h1>Card title</h1>
-        <p>Text between opening and closing tag</p>
-        <p></p>
-      </Card>
-      <>
-      <Alert variant="info" outlined>
-        Would you like to browse our recommended products?
-      </Alert>
-      <Alert variant="error">
-        There was an error during your last transaction
-      </Alert>
-      <Alert variant="success" elevated>
-        Payment received, thank you for your purchase
-      </Alert>
-      <Alert variant="warning">
-        Please update your profile contact information
-      </Alert>
-      <AlertVanilla>Lorem</AlertVanilla>
-      <UserMenu name='Mango'></UserMenu>
-    </>
-      <Listener/>
-      <Reactivity/>
-      <ComponentLifecycle/>
-      <LoginForm/>
-      <HttpUsing/>
-    </div>
-  );
-}
+    const [images, setImages] = useState([]);
+    const [query, setQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [modalImage, setModalImage] = useState(null);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (query === '') return;
+        fetchImages(query, page);
+        }, [query, page]);
+
+      const fetchImages = async (searchQuery, page) => {
+        setLoading(true);
+        try {
+          const response = await axios.get('https://api.unsplash.com/search/photos', {
+            params: { query: searchQuery, page, per_page: 12 },
+            headers: {
+            Authorization: `Client-ID ${API_KEY}`,
+        },
+        });
+          setImages(prevImages => [...prevImages, ...response.data.results]);
+        } catch (error) {
+            setError('Somethings wrong. Please try again later');
+            toast.error('Somethings wrong. Please try again later');
+        } finally {
+            setLoading(false);
+        }
+        };
+    
+      const handleSearchSubmit = searchQuery => {
+        if (searchQuery.trim() === '') {
+          toast('The field must not be empty');
+          return;
+        }
+        setQuery(searchQuery);
+        setImages([]);
+        setPage(1);
+      };
+    
+      const handleImageClick = image => {
+        setModalImage(image);
+        setShowModal(true);
+      };
+    
+      const closeModal = () => {
+        setShowModal(false);
+        setModalImage(null);
+      };
+    
+      return (
+        <div>
+          <SearchBar onSubmit={handleSearchSubmit}/>
+          <ImageGallery images={images} onImageClick={handleImageClick}/>
+          {loading && <Loader/>}
+          {images.length > 0 && !loading && <LoadMoreBtn onClick={() => setPage(prevPage => prevPage + 1)}/>}
+          {showModal && <ImageModal image={modalImage} onClose={closeModal}/>}
+          {error && <ErrorMessage message={error}/>}
+          <Toaster/>
+        </div>
+      );
+    }
