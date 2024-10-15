@@ -45,10 +45,6 @@ export default function App() {
         };
     
       const handleSearchSubmit = searchQuery => {
-        if (searchQuery.trim() === '') {
-          toast('The field must not be empty');
-          return;
-        }
         setQuery(searchQuery);
         setImages([]);
         setPage(1);
